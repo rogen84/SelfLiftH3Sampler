@@ -30,6 +30,13 @@ Experimental H3 audio-video adaptation (not paper-validated). Two modes:
 
 Extra inputs: `upscaler_model` and `highres_tiling` (experimental: splits the high-res phase into 1–8 spatial tiles to save VRAM; only the first tile's audio is kept, there is no cross-tile attention, ControlNet is unsupported, and quality/speed may change).
 
+The H3 sampler exposes two `LATENT` outputs in this fork:
+
+- **`latent` (output 0):** the completed high-resolution result. Connect this to the H3 AV decoder.
+- **`lowres_latent` (output 1):** an experimental continuation checkpoint captured at the low-to-high-resolution transition. It has already been lifted to the target spatial grid and re-noised to the transition sigma, but it has **not** completed the remaining denoising steps. It is not a finished video latent and is not a drop-in input for Motion Context nodes or the AV decoder. Keep using output 0 for normal decoding. This second output changes the node schema from upstream SelfLift; workflows using it require this fork.
+
+When `highres_tiling` is enabled, video keyframes are cropped per tile and audio keyframes (including pinned Motion Context audio windows) pass through unchanged. This compatibility handling is experimental; it does not make the SelfLift transition checkpoint compatible with Motion Context. Tiling still has no cross-tile attention and retains only the first tile's audio prediction.
+
 ### Optional H3 upscaler
 
 Download from [LBH-123-AI/Minimax_h3_latent_Upscaler](https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler) into `ComfyUI/models/latent_upscale_models/` and restart. The node selects the first filename containing `h3`, otherwise `none` (nearest-neighbor lift).

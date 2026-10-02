@@ -30,6 +30,13 @@ H3 音视频实验性适配（论文未验证）。两种模式：
 
 额外输入：`upscaler_model` 与 `highres_tiling`（实验性：把高分辨率阶段切成 1–8 个空间块以省显存；只保留首块音频，块间无全局注意力，不支持 ControlNet，画质和速度可能变化）。
 
+本 fork 的 H3 采样器提供两个 `LATENT` 输出：
+
+- **`latent`（输出 0）：** 完成采样的高分辨率结果，可连接到 H3 AV 解码器。
+- **`lowres_latent`（输出 1）：** 实验性的低分辨率到高分辨率过渡检查点。它已提升到目标空间网格并重新加噪到过渡 sigma，但**尚未完成后续去噪步骤**。它不是最终视频 latent，也不能直接作为 Motion Context 节点或 AV 解码器的通用输入。常规解码请继续使用输出 0。第二输出改变了上游 SelfLift 的节点接口；使用该端口的工作流需要本 fork。
+
+开启 `highres_tiling` 时，视频 keyframe 会按 tile 裁切；音频 keyframe（包括 Motion Context 固定音频窗口）保持原样传入。此兼容处理仍属实验性，并不会让 SelfLift 过渡检查点因此兼容 Motion Context。分块采样仍然没有跨 tile 注意力，且只保留首个 tile 的音频预测。
+
 ### 可选 H3 upscaler
 
 从 [LBH-123-AI/Minimax_h3_latent_Upscaler](https://huggingface.co/LBH-123-AI/Minimax_h3_latent_Upscaler) 下载，放入 `ComfyUI/models/latent_upscale_models/` 后重启。节点默认选第一个文件名含 `h3` 的模型，找不到则为 `none`(nearest 提升）。

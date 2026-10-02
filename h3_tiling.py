@@ -48,12 +48,20 @@ def _tile_payload(payload, context, video, audio, axis, start, end):
     if payload.get("keyframes"):
         keyframes = []
         for keyframe in payload["keyframes"]:
-            latent = keyframe["latent"]
-            if latent.shape[-2:] != (height, width):
-                raise ValueError("SelfLift: tiled H3 keyframes must match the target latent height and width")
-            region = latent.narrow(axis, start, end - start)
-            keyframes.append({**keyframe, "latent": comfy.ldm.common_dit.pad_to_patch_size(
-                region, (1, 2, 2)).contiguous()})
+            if "latent" in keyframe:
+                # Video keyframe: narrow the spatial region for this tile.
+                latent = keyframe["latent"]
+                if latent.shape[-2:] != (height, width):
+                    raise ValueError("SelfLift: tiled H3 keyframes must match the target latent height and width")
+                region = latent.narrow(axis, start, end - start)
+                keyframes.append({**keyframe, "latent": comfy.ldm.common_dit.pad_to_patch_size(
+                    region, (1, 2, 2)).contiguous()})
+            elif "audio_latent" in keyframe:
+                # Audio keyframe (e.g. MotionContext pinned audio window):
+                # audio is not tiled spatially, pass through unchanged so the
+                # layout segment correspondence with the full layout holds.
+                keyframes.append(dict(keyframe))
+            # else: unknown keyframe type, skip
         tiled["keyframes"] = keyframes
         if not payload.get("refs"):
             tiled["cond_video_latents"] = [keyframe["latent"] for keyframe in keyframes]
@@ -116,6 +124,8 @@ def _condition_elements(condition, tile_height, tile_width, channels):
     text = condition.get("cross_attn")
     elements = text.shape[-2] * channels * 4 if text is not None else 0
     for keyframe in condition.get("minimax_keyframes") or []:
+        if "latent" not in keyframe:
+            continue
         shape = keyframe["latent"].shape
         elements += shape[1] * shape[2] * tile_height * tile_width
     for reference in condition.get("minimax_refs") or []:

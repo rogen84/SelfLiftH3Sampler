@@ -231,7 +231,7 @@ def progressive_sample(model, positive, negative, vae, latent_image, sampler, si
                        highres_tiling=False, model_hires=None):
     _validate_schedule(sigmas, transition_step)
     if sigmas.numel() < 2:
-        return latent_image
+        return latent_image, latent_image
     if not 0.25 <= lowres_scale <= 1.0:
         raise ValueError("SelfLift: lowres_scale must be between 0.25 and 1")
     if not 0.0 <= rho <= 1.0:
@@ -453,6 +453,8 @@ def progressive_sample(model, positive, negative, vae, latent_image, sampler, si
                                 sampler, sigmas[transition_step:], high_model.model_options,
                                 latent_image=resume_latent, callback=callback_high,
                                 disable_pbar=disable_pbar, seed=seed)
+    lowres_latent_out = latent_image.copy()
+    lowres_latent_out["samples"] = resume_latent
     del resume_latent, resume_noise
     if high_evaluations != total_steps - transition_step:
         raise RuntimeError(f"SelfLift: expected {total_steps - transition_step} high-resolution callbacks, received {high_evaluations}; check sampler wrappers")
@@ -462,7 +464,7 @@ def progressive_sample(model, positive, negative, vae, latent_image, sampler, si
                                 dtype=comfy.model_management.intermediate_dtype())
     high_timer.finish()
     log_memory("high_resolution end", model.load_device)
-    return result
+    return result, lowres_latent_out
 
 
 class SelfLiftH3Sampler:
@@ -489,7 +491,8 @@ class SelfLiftH3Sampler:
             "highres_tiling": ("BOOLEAN", {"default": False, "label_on": "高分辨率分块：开启", "label_off": "高分辨率分块：关闭", "tooltip": "Experimental: select 1–8 spatial tiles from available memory at high-resolution preparation. Audio input and references remain complete; only the first tile's audio prediction is retained. Quality and speed may change."}),
         }}
 
-    RETURN_TYPES = ("LATENT",)
+    RETURN_TYPES = ("LATENT", "LATENT")
+    RETURN_NAMES = ("latent", "lowres_latent")
     FUNCTION = "sample"
     CATEGORY = "selflift"
 
@@ -505,9 +508,10 @@ class SelfLiftH3Sampler:
             if rho > 0.0 and w_max > 0.0:
                 logging.warning("SelfLift H3: rho > 0 with an external upscaler is a hybrid experiment; select upscaler_model=none to test the paper's SelfLift-zero direct route")
             lifter = lambda z, hw: h3_upscaler.learned_latent_lift(z, hw, upscaler_model)
-        return (progressive_sample(model, positive, negative, vae, latent_image, sampler, sigmas, seed, cfg,
+        result, lowres_latent = progressive_sample(model, positive, negative, vae, latent_image, sampler, sigmas, seed, cfg,
                                    transition_step, lowres_scale, rho, w_min, w_max, "nearest",
-                                   latent_lifter=lifter, highres_tiling=highres_tiling, model_hires=model_hires),)
+                                   latent_lifter=lifter, highres_tiling=highres_tiling, model_hires=model_hires)
+        return (result, lowres_latent)
 
 
 class SelfLiftImageSampler:
