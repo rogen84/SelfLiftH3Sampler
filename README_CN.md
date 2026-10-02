@@ -2,6 +2,8 @@
 
 [English README](README.md)
 
+> **项目来源：** 本项目是在原始仓库 [facok/comfyui-SelfLift](https://github.com/facok/comfyui-SelfLift) 基础上修改的 fork，保留上游 SelfLift 实现，并增加了 MiniMax H3 相关改动，包括实验性的过渡 latent 输出，以及高分辨率分块采样中的 H3 音频 keyframe 处理。原项目请参阅上述上游仓库。
+
 ComfyUI 渐进分辨率采样：前期去噪步骤跑低分辨率，把结果提升到全分辨率并收尾——免训练加速生成。基于 [SelfLift 论文](https://arxiv.org/abs/2609.02036)（SelfLift-zero，面向 rectified-flow 图像模型），外加论文未验证的 MiniMax H3 音视频实验性适配，以及 [TST](https://arxiv.org/abs/2609.08505) 时间注意力校正的 H3 实验性移植。
 
 全部节点位于 `selflift` 分类。采样器节点使用与 `SamplerCustom` 相同的 `sampler`/`sigmas` 接口；`KSamplerSelect` 必须选标准 `euler`，调度器沿用模型默认（其它采样器会被拒绝）。

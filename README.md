@@ -2,6 +2,8 @@
 
 [中文说明](README_CN.md)
 
+> **Origin:** This project is a modified fork of the original [facok/comfyui-SelfLift](https://github.com/facok/comfyui-SelfLift) repository. It preserves the upstream SelfLift work and adds MiniMax H3-specific changes, including an experimental transition-latent output and H3 audio-keyframe handling for high-resolution tiling. Please refer to the linked upstream repository for the original project.
+
 Progressive-resolution sampling for ComfyUI: run the early denoising steps at low resolution, lift the result to full resolution, and finish there — faster generation with no training. Based on the [SelfLift paper](https://arxiv.org/abs/2609.02036) (SelfLift-zero) for rectified-flow image models, plus an experimental MiniMax H3 audio-video adaptation that the paper does not validate. Also included: an experimental H3 port of [TST](https://arxiv.org/abs/2609.08505) temporal-attention correction.
 
 All nodes are in the `selflift` category. The samplers use `sampler`/`sigmas` inputs like `SamplerCustom`; connect the standard `euler` sampler from `KSamplerSelect` and the model's normal scheduler (other samplers are rejected).
